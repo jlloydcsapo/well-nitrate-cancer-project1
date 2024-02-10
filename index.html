@@ -19,30 +19,38 @@
         
     </head>
     <body>
-        
-        <div id="map"></div>
-
-        <div id="form-container">
-            <form id="">
-                <div class="row">
-                <div class="col">
-                    <!-- <label for="decayCoeff">K value</label> -->
-                    <input type="text" class="form-control" id="decayCoeff"  placeholder="K (decay coefficient)">
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-8">
+                    <div id="map"></div>
                 </div>
-                <div class="col">
-                    <input type="text" class="form-control" id="AggArea" placeholder="Aggregation Area">
+                <div class="col-sm-4">
+                    <div id="form-container">
+                        <form id="">
+                            <div class="row">
+                            <div class="mt-2 col-sm">
+                                <!-- <label for="decayCoeff">K value</label> -->
+                                <input type="text" class="form-control" id="decayCoeff"  placeholder="K (decay coefficient)">
+                            </div>
+                            <div class="mt-2 col-sm">
+                                <input type="text" class="form-control" id="AggArea" placeholder="Aggregation Area">
+                            </div>
+                            <div class="mt-2 col-sm">
+                                <button type="button" class="btn btn-success" id="interpolateBtn">Interpolate!</button>
+                            </div>
+                            <div class="mt-2 col-sm">
+                                <button type="button" class="btn btn-dark" id="resetBtn">Reset!</button>
+                            </div>
+                            </div>
+                            <div class = "mt-2 mt-2 row">
+                                <div class="col-sm">
+                                    <a href="#" type="button" class="btn btn-info" id="downloadBtn">Download!</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-                <div class="col">
-                    <button type="button" class="btn btn-success" id="interpolateBtn">Interpolate!</button>
-                </div>
-                <div class="col">
-                    <button type="button" class="btn btn-dark" id="resetBtn">Reset!</button>
-                </div>
-                <div class="col">
-                    <a href="#" type="button" class="btn btn-info" id="downloadBtn">Download!</a>
-                </div>
-                </div>
-            </form>
+            </div>
         </div>
 
         <!--jquery-->

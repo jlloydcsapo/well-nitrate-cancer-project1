@@ -96,9 +96,10 @@ $( "#downloadBtn").click(function(){
         console.log("Downloading interpolated layer...");
         var downloadFile = IDWSurface.toGeoJSON();
         console.log(downloadFile);
-        var path = 'text/json:charset-utf-8' + encodeURIComponent(JSON.stringify(downloadFile))   
+        var path = 'text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(downloadFile))   
         document.getElementById('downloadBtn').setAttribute('href', 'data:' + path);
-        document.getElementById('downloadBtn').setAttribute('download',IDWSurface.geoJson);
+        document.getElementById('downloadBtn').setAttribute('download','IDWSurface.geoJson'
+        );
     } else {
         alert('Nothing to download!')
     }
@@ -266,7 +267,7 @@ function createIDWLegend(breaks){
         var div = L.DomUtil.create('div', 'IDWlegend');
         div.setAttribute('id','IDW-legend');
         // First append an <h3> heading tag to the div holding the current attribute
-        div.innerHTML = "<h5><b>Nitrate Concentration (parts per million)</b></h5>";
+        div.innerHTML = "<h6><b>Nitrate Concentration (parts per million)</b></h6>";
 
         // For each of our breaks
         for (var i = 0; i < breaks.length; i++) {
