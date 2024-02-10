@@ -1,0 +1,88 @@
+#map {
+    height: 90vh;
+    width: 95%;
+    display: block;
+    margin: 10px;
+}
+
+<!--bootstrap-->
+body {
+    height: 100%; 
+    background-color: black;
+}
+
+.legend {
+    padding: 6px 8px;
+	width:60%;
+	font-size: 1em;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    border: 1.3px solid rgba(96, 96, 96, .6);
+	
+}
+
+.legend span {
+    position: relative;
+    display: block; 
+    float: left;
+    width: 30px;
+    height: 20px;
+    margin: 0 10px 4px 0;
+}
+
+.legend label {
+    display: block;
+    font-size: 1.1em;
+	color: black;
+	text-align: right;
+}
+
+.legend label:after {
+    content: '';
+    display: block;
+    clear: both;
+}
+
+#downloadBtn {
+    visibility: visible;
+}
+
+.IDWlegend {
+    padding: 6px 8px;
+	width:60%;
+	font-size: 1em;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    border: 1.3px solid rgba(96, 96, 96, .6);
+	
+}
+
+.IDWlegend span {
+    position: relative;
+    display: block; 
+    float: left;
+    width: 30px;
+    height: 20px;
+    margin: 0 10px 4px 0;
+}
+
+.IDWlegend label {
+    display: block;
+    font-size: 1.1em;
+	color: black;
+	text-align: right;
+}
+
+.IDWlegend label:after {
+    content: '';
+    display: block;
+    clear: both;
+}
+
+#form-container {
+    width: 100vh;
+    margin: auto;
+}
+
