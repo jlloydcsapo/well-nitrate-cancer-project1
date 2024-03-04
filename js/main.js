@@ -1,6 +1,7 @@
 var cancerTracts
 var wellPoints
 var IDWSurface
+var aggregateSurface
 
 var baseLayers = {};
 var layers = {};
@@ -8,6 +9,7 @@ var layers = {};
 var tracts = L.layerGroup();
 var wells = L.layerGroup();
 var interpolatedLayer = L.layerGroup();
+var aggregateLayer = L.layerGroup();
 
 //add OSM base tilelayer
 var OSMLayer = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -35,15 +37,6 @@ map.getPane('tracts').style.zIndex = 250;
 // cycle through geojson to get an array for census tracts
 $.getJSON( "data/cancer_tracts.json", function(data){
     cancerTracts = L.geoJson(data, {
-        // Create a style for the census tracts
-        style: function (feature) {
-            return {
-                color: 'grey', // set stroke color
-                weight: 0.25, // set stroke weight
-                fillOpacity: 0.5, // override the default fill opacity
-                opacity: 1 // border opacity
-            };
-        },
         pane: 'tracts'
     }).addTo(tracts);
 
@@ -72,26 +65,42 @@ $( "#interpolateBtn").click(function(){
     interpolateWells(k, aggArea);
 });
 
+$( "#regressionBtn").click(function(){
+    var k = Number($("#decayCoeff").val());
+    var aggArea = $("#AggArea").val();
+    console.log("Performing regression...")
+    regression();
+});
+
 $( "#resetBtn").click(function(){
     console.log("Resetting layers");
 
-    interpolatedLayer.remove(IDWSurface);
-    layerControl.removeLayer(interpolatedLayer);
-    var IDWLegend = document.getElementById("IDW-legend");
-    
-    if (IDWLegend != null) {
-        IDWLegend.remove();
-    }; 
+    if(map.hasLayer(IDWSurface)) {
+        interpolatedLayer.remove(IDWSurface);
+        layerControl.removeLayer(interpolatedLayer);
+        var IDWLegend = document.getElementById("IDW-legend");
+        
+        if (IDWLegend != null) {
+            IDWLegend.remove();
+        }; 
+    };
 
+    if(map.hasLayer(aggregateSurface)) {
+        aggregateLayer.remove(aggregateSurface);
+        layerControl.removeLayer(aggregateLayer);
+    };
+    
     var decay = document.getElementById("decayCoeff");
     decay.value = decay.defaultValue;
 
     var decay = document.getElementById("AggArea");
     decay.value = decay.defaultValue;
+
+    Plotly.deleteTraces("regression-chart", [0,1]);
+    document.getElementById("regression-text").innerHTML = "";
 });
 
 $( "#downloadBtn").click(function(){
-
     if(map.hasLayer(IDWSurface)) {
         console.log("Downloading interpolated layer...");
         var downloadFile = IDWSurface.toGeoJSON();
@@ -155,7 +164,9 @@ function visualizeTracts(){
 		// Set its color based on the nitrate concentration
         layer.setStyle({
             color: cancerColorBreaks(layer.feature.properties.canrate, breaks),
-            weight: 2
+            weight: 2,
+            fillOpacity: 0.5, // override the default fill opacity
+            opacity: 1
         });
 		// Build the popup for the well point
         var popup = "<b>Cancer Rate: </b>" + layer.feature.properties.canrate.toFixed(2);
@@ -267,7 +278,7 @@ function createIDWLegend(breaks){
         var div = L.DomUtil.create('div', 'IDWlegend');
         div.setAttribute('id','IDW-legend');
         // First append an <h3> heading tag to the div holding the current attribute
-        div.innerHTML = "<h6><b>Nitrate Concentration (parts per million)</b></h6>";
+        div.innerHTML = "<h6><b>Nitrate Concentration (interpoloated)</b></h6>";
 
         // For each of our breaks
         for (var i = 0; i < breaks.length; i++) {
@@ -387,9 +398,9 @@ function interpolateWells(k, hexArea){
             wellPointArray.push(wellTurfPoint);
     });
 
-    var turPointCollection = turf.featureCollection(wellPointArray);
+    var turfPointCollection = turf.featureCollection(wellPointArray);
 
-    var interpolatedSurface = turf.interpolate(turPointCollection, hexArea, options);
+    var interpolatedSurface = turf.interpolate(turfPointCollection, hexArea, options);
     
     console.log(interpolatedSurface);
 
@@ -397,8 +408,6 @@ function interpolateWells(k, hexArea){
         // Create a style for the census tracts
         style: function (feature) {
             return {
-                color: 'grey', // set stroke color
-                weight: 0.25, // set stroke weight
                 fillOpacity: 0.5, // override the default fill opacity
                 opacity: 1 // border opacity
             };
@@ -424,8 +433,156 @@ function interpolateWells(k, hexArea){
 
     interpolatedLayer.addTo(map);
 
-    layers.Interpolation = interpolatedLayer; 
+    // layers.Interpolation = interpolatedLayer; 
     layerControl.addOverlay(interpolatedLayer, "Interpolation");
+};
+
+function regression(){
+    console.log("aggregrating well data to tracts...");
+
+    var wellPointArray= [];
+    wellPoints.eachLayer(function(layer) {
+            var properties = layer.feature.properties;
+            var coord = layer.feature.geometry.coordinates;
+
+            var wellTurfPoint = turf.point(coord, properties);
+            wellPointArray.push(wellTurfPoint);
+    });
+
+    var turfPointCollection = turf.featureCollection(wellPointArray);
+
+    var cancerPolyArray= [];
+
+    cancerTracts.eachLayer(function(layer) {
+            var properties = layer.feature.properties;
+            var coord = layer.feature.geometry.coordinates;
+
+            var cancerPoly = turf.polygon(coord, properties);
+            cancerPolyArray.push(cancerPoly);
+    });
+
+    var turfPolyCollection = turf.featureCollection(cancerPolyArray);
+    
+    var aggregatedLayer = turf.collect(turfPolyCollection, turfPointCollection, 'nitr_ran', 'nitr_vals');
+    
+    //add aggregated layer 
+    aggregateSurface = L.geoJson(aggregatedLayer, {
+    }).addTo(aggregateLayer);
+
+
+    var breaks = getCancerBreaks(cancerTracts);
+
+    aggregateSurface.eachLayer(function (layer) {
+		// Set its color based on the nitrate concentration
+        layer.setStyle({
+            color: cancerColorBreaks(layer.feature.properties.canrate, breaks),
+            weight: 2,
+            fillOpacity: 0.5, // override the default fill opacity
+            opacity: 1
+        });
+
+        var nitr_array = layer.feature.properties.nitr_vals;
+
+        var mean_nitr;
+
+        if (nitr_array.length == 0){
+            mean_nitr = 0;
+        } else {
+            mean_nitr = ss.mean(nitr_array);
+        }
+        
+        layer.feature.properties.mean_nitr = mean_nitr;
+
+		// Build the popup for the well point
+        var popup = "<b>Cancer Rate: </b>" + layer.feature.properties.canrate.toFixed(2);
+        popup += "<br/><b>Mean Nitrate PPM: </b>" + layer.feature.properties.mean_nitr.toFixed(2);
+        // Bind the popup to the well point
+        layer.bindPopup(popup);
+	});
+
+    var nitrArray = [];
+    var canArray = [];
+    nitrCancPairs = [];
+
+    aggregateSurface.eachLayer(function(layer) {
+        var nitr = layer.feature.properties.mean_nitr;
+        var can_rate = layer.feature.properties.canrate;
+
+        var nitrCanRate = [nitr, can_rate];
+        nitrCancPairs.push(nitrCanRate);
+
+        nitrArray.push(nitr);
+        canArray.push(can_rate);
+    });
+
+    console.log(nitrCancPairs);
+    var regressionLine = ss.linearRegression(nitrCancPairs);
+    
+    console.log("slope = " + regressionLine.m);
+    console.log("y-intercept = " + regressionLine.b);
+    
+    aggregateLayer.addTo(map);
+
+    // layers.Interpolation = interpolatedLayer; 
+    layerControl.addOverlay(aggregateLayer, "Aggregate");
+
+    const ctx = document.getElementById('regression-chart');
+      
+      var trace2 = {
+        x: nitrArray,
+        y: canArray,
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Nitrate vs Cancer Levels'
+      };
+
+      var trace1 = {
+        x:[-1,15],
+        y:[lineEq(regressionLine.m, regressionLine.b, -1), lineEq(regressionLine.m, regressionLine.b, 15)],
+        mode: 'lines',
+        type: 'scatter',
+        name: ' of Best Fit'
+      };
+      
+      var layout = {
+        title: 'Nitrate vs Cancer Rate',
+        xaxis: {title: 'Nitrate (ppm)'},
+        yaxis: {title: 'Cancer Rate'},
+        showlegend: false
+      };
+
+      var data = [trace2, trace1]; 
+      
+    Plotly.newPlot(ctx, data, layout);
+    var r2 = computeR2(regressionLine.m, regressionLine.b, nitrArray, canArray);
+
+    document.getElementById("regression-text").innerHTML += "<p> RMSE = " + r2;
+    document.getElementById("regression-text").innerHTML +=   "This value of root mean-squared error implies very little linear correlation between the nitrate and cancer levels.</p>";
+};
+
+function computeR2(slope, intercept, input, output){
+    
+    let regError = 0;
+    let totalErr = 0;
+
+    let mean = output.reduce((a,b) => a + b) / output.length;
+
+    for (let i = 0; i<input.length; i++) {
+        regError += Math.pow(output[i] - prediction(slope, intercept, input[i]), 2);
+        totalErr += Math.pow(output[i]-mean, 2);
+    }
+
+    return 1 - (regError / totalErr);
+};
+
+function prediction(slope, intercept, input) {
+    
+    return intercept + slope * input;
+}
+
+function lineEq(slope, intercept, input){
+    var output = (input * slope) + intercept;
+    return output;
 };
 
 // document.addEventListener('DOMContentLoaded', loadMap);
