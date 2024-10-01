@@ -19,7 +19,7 @@ var OSMLayer = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 
 baseLayers.OpenStreetMap = OSMLayer;
 
 //initial map options
-var mapOpt = {
+var mapOptions = {
     center: [44.669778, -89.311975],
     zoom: 7,
     minZoom: 6,
@@ -29,7 +29,7 @@ var mapOpt = {
 };
 
 //create map
-var map = L.map('map', mapOpt);
+var map = L.map('map', mapOptions);
 
 map.createPane('tracts');
 map.getPane('tracts').style.zIndex = 250;
